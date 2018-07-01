@@ -1,0 +1,85 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<article>
+    <h1>Image search</h1>
+    <section class="container search-form">
+        <form id="search-form" action="" method="get">
+            <div class="form-group">
+                <label for="keywords">Keywords</label>
+                <input class="form-control" type="text" id="keywords" name="keywords" placeholder="Keywords" value="{{ keywords }}" />
+            </div>
+            <span>Query type:&nbsp;</span>
+            <div class="form-check form-check-inline">
+                {% for query_type in ['keyword', 'filename'] %}
+                <label class="form-check-label">
+                    <input type="radio" class="form-check-input" name="qt" value="{{ query_type }}" {% if query_type == qt %}checked{% endif %} />
+                    {{ query_type }}
+                </label>
+                {% endfor %}
+            </div>
+            <div class="form-group">
+                <div class="btn-group" data-toggle="buttons">
+                    {% for group in groups %}
+                    <label class="btn btn-secondary">
+                        <input class="image-group" type="checkbox" id="image-group-{{ group.id }}" name="ig[]" value="{{ group.id }}" checked autocomplete="off" />
+                        {{ group.name }}
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary">Search</button>
+        </form>
+    </section>
+    <hr />
+    <div class="row">
+        <div class="col-2">
+            <aside class="image-sidebar" id="image-sidebar">
+                <h3 class="clearfix">
+                    Image ID: <span id="image-id"></span>
+                    <button id="delete-image-btn" class="btn btn-danger float-right">Delete</button>
+                </h3>
+                <form id="image-form">
+                    <div class="form-group">
+                        <select class="form-control" name="ig" id="image-group-list">
+                            {% for group in groups %}
+                            <option value="{{ group.id }}">{{ group.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </form>
+                <div class="text-truncate">
+                    <a id="image-local" target="_blank"></a>
+                </div>
+                <div class="text-truncate">
+                    <a id="image-url" target="_blank">Original link</a>
+                </div>
+                <ul id="tags-list" class="tags-list"></ul>
+            </aside>
+        </div>
+        <div class="col-10">
+            <section class="container-fluid results">
+                <h2>Results</h2>
+                <div class="row">
+                    {% for image, tags in results %}
+                    <div class="col-2 image">
+                        <img class="lazy"
+                            data-src="{{ url_for('image_file', group=image.group.name, filename=image.filename) }}"
+                            data-id="{{ image.id }}"
+                            data-original-link="{{ image.original_link }}"
+                            data-group="{{ image.group.id }}"
+                            alt="{{ tags }}">
+                        <p class="text-center">
+                            <span class="image-dimensions"><!-- Loaded with lazyload --></span><br />
+                            <span class="image-group-text">{{ image.group.name }}</span>
+                        </p>
+                    </div>
+                    {% else %}
+                    <div class="col-12">No images found</div>
+                    {% endfor %}
+                </div>
+            </section>
+        </div>
+    </div>
+</article>
+{% endblock %}

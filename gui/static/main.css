@@ -1,0 +1,79 @@
+body {
+  background-color: #202020;
+  color: #e5e5e5;
+}
+
+hr {
+  background-color: #e5e5e5;
+}
+
+.form-control {
+  background-color: #323232;
+  border-color: #707070;
+  color: #efefef;
+}
+
+.form-control:focus {
+  background-color: #2f2f2f;
+  border-color: #1b6eff;
+  color: #efefef;
+}
+
+.lazy {
+  min-height: 100px;
+  min-width: 100px;
+  max-height: 100%;
+  max-width: 100%;
+}
+
+.results {
+  overflow: hidden;
+}
+
+.results .image {
+  margin-bottom: 1rem;
+}
+
+.results .image.selected {
+  background-color: #202020;
+  height: 100%;
+  position: fixed;
+  right: 0;
+  text-align: center;
+  top: 0;
+  z-index: 5;
+}
+
+.results .image.selected p {
+  height: 100%;
+  margin: 0;
+}
+
+.results .image img {
+  border-radius: 5px;
+  cursor: pointer;
+}
+.results .image.selected img {
+  height: 95%;
+}
+
+.image-sidebar {
+  height: 100%;
+  z-index: 10;
+}
+
+.image-sidebar.image-sidebar__fixed {
+  padding-right: 30px;
+  position: fixed;
+  top: 0;
+  width: 16.666667%;
+}
+
+.tags-list {
+  height: 85%;
+  overflow-y: scroll;
+}
+
+.tags-list > li {
+  /*list-style: none;*/
+}
