@@ -13,6 +13,7 @@ from database.db_queries import *
 def get_image(url: str, redownload=False, custom_name=None):
     if not url:
         return
+    url = url.strip()
     try:
         parser = Parser.determine_parser(url)
     except NotImplementedError as e:
@@ -27,7 +28,7 @@ def get_image(url: str, redownload=False, custom_name=None):
     if not redownload and db.Image.select().where(db.Image.filename == filename).exists():
         return 'Image ({}) already exists'.format(url)
     img_info['data'] = parser.get_image(img_info['link'])
-    img_info['original_link'] = parser.url
+    img_info['original_link'] = url
     img_info['filename'] = filename
     return img_info
 
@@ -139,5 +140,5 @@ def fetch_image_urls(group: db.ImageGroup, all_images: bool):
     query = db.Image.select(db.Image.original_link, db.Image.filename).where(db.Image.group == group).join(db.ImageGroup)
     if all_images:
         return [img.original_link for img in query]
-    files = [file.name for file in Path(group.path).iterdir()]
+    files = set(file.name for file in Path(group.path).iterdir())
     return [img.original_link for img in query if img.filename not in files]

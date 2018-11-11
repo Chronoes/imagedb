@@ -41,8 +41,8 @@ def progress_bar(iteration, total, prefix='', suffix=''):
         prefix      - Optional  : prefix string (Str)
         suffix      - Optional  : suffix string (Str)
     """
-    full_length = shutil.get_terminal_size()[0]
-    bar_length = full_length - len(prefix) - len(suffix) - 12
+    terminal_width = shutil.get_terminal_size()[0]
+    bar_length = terminal_width - len(prefix) - len(suffix) - 13
 
     if total > 0:
         filled_length = int(round(bar_length * iteration / float(total)))

@@ -33,9 +33,9 @@ class Parser:
 
     def get_image_info(self):
         resp = self.session.get(self.url)
-        self._set_html_parser(resp.text)
-        image_parent = self._get_image_parent()
-        link_parent = self._get_link_parent()
+        soup = BeautifulSoup(resp.text, 'html.parser')
+        image_parent = self._get_image_parent(soup)
+        link_parent = self._get_link_parent(soup)
         if image_parent and link_parent:
             return {
                 'tags': image_parent['alt'].split(),
@@ -49,24 +49,21 @@ class Parser:
             headers={'Referer': self.url})
         return resp.content
 
-    def _set_html_parser(self, content):
-        self.soup = BeautifulSoup(content, 'html.parser')
-
-    def _get_image_parent(self):
+    def _get_image_parent(self, soup):
         raise NotImplementedError('Gets location of image and tags in HTML')
 
-    def _get_link_parent(self):
+    def _get_link_parent(self, soup):
         raise NotImplementedError('Gets link to original (unsampled) image')
 
 
 class GelbooruParser(Parser):
     hostname = 'gelbooru.com'
 
-    def _get_image_parent(self):
-        return self.soup.find(id='image')
+    def _get_image_parent(self, soup):
+        return soup.find(id='image')
 
-    def _get_link_parent(self):
-        a_tags = self.soup.find_all('a')
+    def _get_link_parent(self, soup):
+        a_tags = soup.find_all('a')
         for element in a_tags:
             if element.string == 'Original image':
                 return element
@@ -76,11 +73,11 @@ class GelbooruParser(Parser):
 class KonachanParser(Parser):
     hostname = 'konachan.com'
 
-    def _get_image_parent(self):
-        return self.soup.find(id='image')
+    def _get_image_parent(self, soup):
+        return soup.find(id='image')
 
-    def _get_link_parent(self):
-        return self.soup.find(id='highres')
+    def _get_link_parent(self, soup):
+        return soup.find(id='highres')
 
 
 class YandereParser(KonachanParser):
