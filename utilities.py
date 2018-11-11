@@ -6,30 +6,12 @@ from urllib.parse import urlparse
 from html_parsers import *
 
 
-
 def parse_filename(link: str) -> str:
     return urlparse(link).path.split('/')[-1]
 
 
 def parse_extension(link: str) -> str:
     return '.' + parse_filename(link).split('.')[-1]
-
-gelbooru = GelbooruParser()
-konachan = KonachanParser()
-yandere = YandereParser()
-
-def determine_parser(url: str) -> Parser:
-    if url.find('gelbooru.com') != -1:
-        gelbooru.set_url(url)
-        return gelbooru
-    elif url.find('konachan.com') != -1:
-        konachan.set_url(url)
-        return konachan
-    elif url.find('yande.re') != -1:
-        yandere.set_url(url)
-        return yandere
-    else:
-        raise NotImplementedError('Parser for (' + url + ') does not exist yet')
 
 
 def progress_bar(iteration, total, prefix='', suffix=''):

@@ -1,34 +1,28 @@
 import threading
 import queue
 import peewee
+import time
 
 from pathlib import Path
 
 import database.database as db
 import utilities as util
-from html_parsers import Parser
+from html_parsers import Parser, ParserManager
 from database.db_queries import *
 
 
-def get_image(url: str, redownload=False, custom_name=None):
-    if not url:
-        return
-    url = url.strip()
-    try:
-        parser = Parser.determine_parser(url)
-    except NotImplementedError as e:
-        return str(e)
+def get_image(parser: Parser, redownload=False, custom_name=None):
     img_info = parser.get_image_info()
     if not img_info:
-        return 'Could not parse {}'.format(url)
+        return 'Could not parse {}'.format(parser.url)
     if custom_name:
         filename = custom_name + util.parse_extension(img_info['link'])
     else:
         filename = util.parse_filename(img_info['link'])
     if not redownload and db.Image.select().where(db.Image.filename == filename).exists():
-        return 'Image ({}) already exists'.format(url)
+        return 'Image ({}) already exists'.format(parser.url)
     img_info['data'] = parser.get_image(img_info['link'])
-    img_info['original_link'] = url
+    img_info['original_link'] = parser.url
     img_info['filename'] = filename
     return img_info
 
@@ -68,10 +62,13 @@ def get_image_bulk(urls: list, **kwargs):
     consumer.start()
 
     threads = []
+    manager = ParserManager()
     for url in set(urls):
-        t = threading.Thread(target=get_image_queue, args=(url_queue, url), kwargs=kwargs)
+        parser = manager.determine_parser(url)
+        t = threading.Thread(target=get_image_queue, args=(url_queue, parser), kwargs=kwargs)
         t.start()
         threads.append(t)
+        time.sleep(0.3)
 
     for t in threads:
         t.join()

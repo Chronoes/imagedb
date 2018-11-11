@@ -10,25 +10,8 @@ __author__ = 'Chronoes'
 class Parser:
     hostname = None
 
-    def __init__(self, url=None):
-        self.session = Session()
-        self.url = url.strip() if url else None
-
-    @staticmethod
-    def determine_parser(url):
-        if url.find(gelbooru.hostname) != -1:
-            gelbooru.set_url(url)
-            return gelbooru
-        elif url.find(konachan.hostname) != -1:
-            konachan.set_url(url)
-            return konachan
-        elif url.find(yandere.hostname) != -1:
-            yandere.set_url(url)
-            return yandere
-        else:
-            raise NotImplementedError('Parser for (' + url + ') does not exist yet')
-
-    def set_url(self, url):
+    def __init__(self, session, url):
+        self.session = session
         self.url = url.strip()
 
     def get_image_info(self):
@@ -43,7 +26,7 @@ class Parser:
             }
         return
 
-    def get_image(self, link):
+    def get_image(self,link):
         resp = self.session.get(
             link,
             headers={'Referer': self.url})
@@ -84,6 +67,16 @@ class YandereParser(KonachanParser):
     hostname = 'yande.re'
 
 
-gelbooru = GelbooruParser()
-konachan = KonachanParser()
-yandere = YandereParser()
+class ParserManager:
+    def __init__(self):
+        self.session = Session()
+
+    def determine_parser(self, url):
+        if url.find(GelbooruParser.hostname) != -1:
+            return GelbooruParser(self.session, url)
+        elif url.find(KonachanParser.hostname) != -1:
+            return KonachanParser(self.session, url)
+        elif url.find(YandereParser.hostname) != -1:
+            return YandereParser(self.session, url)
+        else:
+            raise NotImplementedError('Parser for (' + url + ') does not exist yet')
