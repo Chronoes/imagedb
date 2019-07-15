@@ -3,10 +3,12 @@
 import os.path
 import peewee as pw
 
-__author__ = 'Chronoes'
+from config import load_config
 
-db_path = os.path.join(os.path.dirname(__file__), 'imageDB.sqlite')
-db = pw.SqliteDatabase(db_path)
+__author__ = 'Chronoes'
+config = load_config()
+
+db = pw.SqliteDatabase(config['database']['path'])
 
 class BaseModel(pw.Model):
     class Meta:
@@ -14,7 +16,6 @@ class BaseModel(pw.Model):
 
 class ImageGroup(BaseModel):
     name = pw.CharField(unique=True)
-    path = pw.CharField()
 
 class Image(BaseModel):
     group = pw.ForeignKeyField(ImageGroup)

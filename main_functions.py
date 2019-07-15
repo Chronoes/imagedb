@@ -10,6 +10,10 @@ import utilities as util
 from html_parsers import Parser, ParserManager
 from database.db_queries import *
 
+from config import load_config
+
+config = load_config()
+
 
 def get_image(parser: Parser, redownload=False, custom_name=None):
     img_info = parser.get_image_info()
@@ -86,7 +90,7 @@ def get_image_bulk(urls: list, **kwargs):
 
 def save_file(img_info: dict, group: db.ImageGroup):
     filename = img_info['filename']
-    dest_path = Path(group.path) / filename
+    dest_path = Path(config['groups'][group.name]) / filename
     with dest_path.open('wb') as f:
         f.write(img_info['data'])
 
@@ -137,5 +141,5 @@ def fetch_image_urls(group: db.ImageGroup, all_images: bool):
     query = db.Image.select(db.Image.original_link, db.Image.filename).where(db.Image.group == group).join(db.ImageGroup)
     if all_images:
         return [img.original_link for img in query]
-    files = set(file.name for file in Path(group.path).iterdir())
+    files = set(file.name for file in Path(config['groups'][group.name]).iterdir())
     return [img.original_link for img in query if img.filename not in files]

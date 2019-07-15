@@ -1,0 +1,9 @@
+{
+  "groups": {
+    "default": ""
+  },
+  "database": {
+    "type": "sqlite",
+    "path": ""
+  }
+}

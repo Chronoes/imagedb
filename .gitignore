@@ -1,2 +1,6 @@
 __pycache__
 imageDB.sqlite*
+.vscode
+
+/config*.json
+!/config.dist.json
