@@ -7,26 +7,25 @@ from pathlib import Path
 
 import database.database as db
 import utilities as util
-from html_parsers import Parser, ParserManager
-from database.db_queries import *
+from downloaders import ImageDownloader, DownloaderManager
 
 from config import load_config
 
 config = load_config()
 
 
-def get_image(parser: Parser, redownload=False, custom_name=None):
-    img_info = parser.get_image_info()
+def get_image(downloader: ImageDownloader, redownload=False, custom_name=None):
+    img_info = downloader.get_image_info()
     if not img_info:
-        return 'Could not parse {}'.format(parser.url)
+        return 'Could not parse {}'.format(downloader.url)
     if custom_name:
         filename = custom_name + util.parse_extension(img_info['link'])
     else:
         filename = util.parse_filename(img_info['link'])
     if not redownload and db.Image.select().where(db.Image.filename == filename).exists():
-        return 'Image ({}) already exists'.format(parser.url)
-    img_info['data'] = parser.get_image(img_info['link'])
-    img_info['original_link'] = parser.url
+        return 'Image ({}) already exists'.format(downloader.url)
+    img_info['data'] = downloader.get_image(img_info['link'])
+    img_info['original_link'] = downloader.url
     img_info['filename'] = filename
     return img_info
 
@@ -66,10 +65,10 @@ def get_image_bulk(urls: list, **kwargs):
     consumer.start()
 
     threads = []
-    manager = ParserManager()
+    manager = DownloaderManager()
     for url in set(urls):
-        parser = manager.determine_parser(url)
-        t = threading.Thread(target=get_image_queue, args=(url_queue, parser), kwargs=kwargs)
+        downloader = manager.determine_downloader(url)
+        t = threading.Thread(target=get_image_queue, args=(url_queue, downloader), kwargs=kwargs)
         t.start()
         threads.append(t)
         time.sleep(0.3)

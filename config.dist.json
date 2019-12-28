@@ -5,5 +5,11 @@
   "database": {
     "type": "sqlite",
     "path": ""
+  },
+  "credentials": {
+    "gelbooru": {
+      "api_key": "",
+      "user_id": ""
+    }
   }
 }

@@ -3,8 +3,6 @@ import sys
 import functools
 from urllib.parse import urlparse
 
-from html_parsers import *
-
 
 def parse_filename(link: str) -> str:
     return urlparse(link).path.split('/')[-1]

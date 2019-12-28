@@ -5,7 +5,9 @@ import sys
 import argparse
 
 from pathlib import Path
-from main_functions import *
+from main_functions import fetch_image_urls, get_image_bulk, get_image, save_file, save
+import database.db_queries as queries
+from downloaders import DownloaderManager
 
 __author__ = 'Chronoes'
 
@@ -21,9 +23,9 @@ def init_parser():
         Currently supported Gelbooru, Konachan and Yande.re.''')
     parser.add_argument('-o', '--out',
         help='Custom filename for destination. Only works for single URL source')
-    parser.add_argument('-s', '--series',
-        action='store_true',
-        help='Read source file of URLs as an image series. Multiple series must be separated by newline.')
+    # parser.add_argument('-s', '--series',
+    #     action='store_true',
+    #     help='Read source file of URLs as an image series. Multiple series must be separated by newline.')
     parser.add_argument('--redownload',
         action='store_true',
         help='Redownload images that do not exist in filesystem. Use --force to download all.')
@@ -40,10 +42,8 @@ def init_parser():
 def main():
     parser = init_parser()
     args = parser.parse_args()
-    # TODO: Fix this shit
-    args.series = False
 
-    img_group = find_group(args.group)
+    img_group = queries.find_group(args.group)
 
     if args.redownload:
         urls = fetch_image_urls(img_group, args.force)
@@ -52,12 +52,12 @@ def main():
             save_file(img_info, img_group)
             print('Image {} redownloaded.'.format(img_info['original_link']))
     elif args.source.startswith('http'):
+        manager = DownloaderManager()
+        downloader = manager.determine_downloader(args.source)
         if 'out' in args:
-            img_info = get_image(
-                args.source,
-                custom_name=args.out)
+            img_info = get_image(downloader, custom_name=args.out)
         else:
-            img_info = get_image(args.source)
+            img_info = get_image(downloader)
         if type(img_info) == str:
             print(img_info)
         else:
@@ -66,9 +66,6 @@ def main():
         file = sys.stdin if args.source == '-' else open(args.source, 'r')
         with file as f:
             urls = f.readlines()
-        # if args.series:
-        #     results = get_image_series(urls)
-        # else:
         results = get_image_bulk(urls, redownload=args.redownload)
         for img_info in results:
             save(img_info, img_group)
