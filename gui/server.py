@@ -2,8 +2,9 @@ import os
 import os.path
 import shutil
 import json
+import peewee
 
-import imagedb.database as db
+import imagedb.database.database as db
 
 from imagedb.database.db_queries import query_results, find_group, get_groups, get_image_tags, query_by_id
 from flask import Flask, render_template, request, send_from_directory, url_for
@@ -34,13 +35,23 @@ def index():
     }
     keywords = request.args.get('keywords')
     if keywords:
+        defaults['keywords'] = keywords
+    randomize = request.args.get('randomize')
+    if randomize:
+        defaults['randomize'] = randomize
+    if keywords or randomize == '1':
         defaults['qt'] = request.args.get('qt', defaults['qt'])
         results = []
-        query = query_results(keywords.split(), groups=request.args.getlist('ig[]'), query_type=defaults['qt'])
+        query = query_results(keywords.split() if len(keywords) > 0 else [], groups=request.args.getlist('ig[]'), query_type=defaults['qt'])
+        if randomize == '1':
+            query = query.order_by(peewee.fn.Random())
+
+        if len(keywords) == 0:
+            query = query.limit(100)
         for image in query:
             results.append((image, ' '.join(get_image_tags(image))))
 
-        return render_template('index.html', keywords=keywords, results=results, **defaults)
+        return render_template('index.html', results=results, **defaults)
 
     return render_template('index.html', **defaults)
 

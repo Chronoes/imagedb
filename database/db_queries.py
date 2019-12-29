@@ -11,17 +11,20 @@ def query_results(split_line: list, groups=None, query_type='keyword'):
     if groups is not None and len(groups) > 0:
         query = query.where(ImageGroup.id << groups)
 
-    if query_type == 'filename':
-        ilike_qry = '{}%'
-        query = query.where(Image.filename ** ilike_qry.format(split_line[0]))
-        for filename in split_line[1:]:
-            query |= Image.filename ** ilike_qry.format(filename)
-        return query
+    if len(split_line) > 0:
+        if query_type == 'filename':
+            ilike_qry = '{}%'
+            query = query.where(Image.filename ** ilike_qry.format(split_line[0]))
+            for filename in split_line[1:]:
+                query |= Image.filename ** ilike_qry.format(filename)
+            return query
+        else:
+            imagetags = imagetag_subquery(split_line[0])
+            for tag in split_line[1:]:
+                imagetags &= imagetag_subquery(tag)
+            return query.where(Image.id << imagetags).group_by(Image.id)
     else:
-        imagetags = imagetag_subquery(split_line[0])
-        for tag in split_line[1:]:
-            imagetags &= imagetag_subquery(tag)
-        return query.where(Image.id << imagetags).group_by(Image.id)
+        return query
 
 
 def query_by_id(ids: list):

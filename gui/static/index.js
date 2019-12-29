@@ -1,11 +1,11 @@
-(function () {
+(function() {
   'use strict';
 
   const lazyload = new LazyLoad({
     callback_load(image) {
       const dimensions = image.parentElement.querySelector('.image-dimensions');
       dimensions.textContent = `${image.naturalWidth}x${image.naturalHeight}`;
-    }
+    },
   });
 
   function removeChildren(element) {
@@ -14,7 +14,7 @@
     }
   }
 
-  const setCurrentImage = (function () {
+  const setCurrentImage = (function() {
     const imageLocal = document.getElementById('image-local');
     const imageUrl = document.getElementById('image-url');
     const imageIdEl = document.getElementById('image-id');
@@ -38,9 +38,7 @@
         fetch(`/image/${imageId}`, { method: 'DELETE' }).then(res => {
           // currentImage.parentElement.classList.remove('col-10');
           // currentImage.parentElement.classList.remove('selected');
-          currentImage.parentElement.parentElement.removeChild(
-            currentImage.parentElement
-          );
+          currentImage.parentElement.parentElement.removeChild(currentImage.parentElement);
           target.removeEventListener('click', handleDeleteClickEvent);
         });
       }
@@ -97,12 +95,10 @@
 
       fetch(`/image/${imageIdEl.textContent}`, {
         method: 'PUT',
-        body: params
+        body: params,
       }).then(() => {
         $currentImage.setAttribute('data-group', params.get('ig'));
-        $currentImage.parentElement.querySelector(
-          '.image-group-text'
-        ).textContent = groupText;
+        $currentImage.parentElement.querySelector('.image-group-text').textContent = groupText;
       });
     });
 
@@ -116,10 +112,14 @@
     });
   });
 
+  document.querySelectorAll('.btn > [type="checkbox"]').forEach(element => {
+    element.addEventListener('change', event => {
+      event.target.parentElement.classList.toggle('active');
+    });
+  });
+
   const imageGroups =
-    (localStorage.getItem('selectedGroups') &&
-      localStorage.getItem('selectedGroups').split(',')) ||
-    [];
+    (localStorage.getItem('selectedGroups') && localStorage.getItem('selectedGroups').split(',')) || [];
 
   const searchForm = document.getElementById('search-form');
 
@@ -128,9 +128,6 @@
     if (group.checked) {
       group.parentElement.classList.add('active');
     }
-    group.addEventListener('change', event => {
-      event.target.parentElement.classList.toggle('active');
-    });
   });
 
   searchForm.addEventListener('submit', event => {
@@ -145,8 +142,7 @@
   });
 
   const imageSidebar = document.getElementById('image-sidebar');
-  const sidebarPositionFromTop =
-    window.scrollY + imageSidebar.getBoundingClientRect().y;
+  const sidebarPositionFromTop = window.scrollY + imageSidebar.getBoundingClientRect().y;
 
   //*/
   function handleScrollEvent(lastScrollPosition) {

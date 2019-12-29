@@ -5,7 +5,7 @@ import sys
 import argparse
 
 from pathlib import Path
-from main_functions import fetch_image_urls, get_image_bulk, get_image, save_file, save
+from main_functions import fetch_image_urls, get_image, get_image_bulk, save, save_file
 import database.db_queries as queries
 from downloaders import DownloaderManager
 

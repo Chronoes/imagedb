@@ -3,7 +3,7 @@
 import os.path
 import peewee as pw
 
-from config import load_config
+from imagedb.config import load_config
 
 __author__ = 'Chronoes'
 config = load_config()
