@@ -50,6 +50,8 @@ class GelbooruAPIParser(ImageDownloader):
         img_id = self.parse_id()
         params['id'] = img_id
         resp = self.session.get('https://gelbooru.com/index.php', params=params)
+        if len(resp.content) == 0:
+            return
 
         resp_json = resp.json().pop()
         return {
