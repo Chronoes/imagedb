@@ -38,4 +38,4 @@ def get_groups():
     return ImageGroup.select()
 
 def get_image_tags(img):
-    return (tag.tag for tag in Tag.select(Tag.tag).where(ImageTag.image == img).join(ImageTag))
+    return (tag.tag for tag in Tag.select(Tag.tag).where(ImageTag.image == img).join(ImageTag).order_by(Tag.tag))

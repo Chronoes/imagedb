@@ -1,8 +1,10 @@
-(function() {
+(() => {
   'use strict';
 
   const lazyload = new LazyLoad({
+    threshold: 100,
     callback_load(image) {
+      image.classList.remove('lazyloading');
       const dimensions = image.parentElement.querySelector('.image-dimensions');
       dimensions.textContent = `${image.naturalWidth}x${image.naturalHeight}`;
     },
@@ -14,7 +16,7 @@
     }
   }
 
-  const setCurrentImage = (function() {
+  const setCurrentImage = (() => {
     const imageLocal = document.getElementById('image-local');
     const imageUrl = document.getElementById('image-url');
     const imageIdEl = document.getElementById('image-id');
@@ -23,15 +25,16 @@
     const imageGroup = document.getElementById('image-group-list');
     const tagsList = document.getElementById('tags-list');
 
-    function handleClickEvent(event) {
+    const handleClickEvent = event => {
       event.target.parentElement.classList.remove('col-10');
       event.target.parentElement.classList.remove('selected');
       event.target.removeEventListener('click', handleClickEvent);
-    }
+      imageDeleteBtn.disabled = true;
+    };
 
     let currentImage;
 
-    function handleDeleteClickEvent(event) {
+    const handleDeleteClickEvent = event => {
       const target = event.target;
       const imageId = event.target.value;
       if (confirm(`Are you sure you want to delete image ${imageId}`)) {
@@ -40,11 +43,34 @@
           // currentImage.parentElement.classList.remove('selected');
           currentImage.parentElement.parentElement.removeChild(currentImage.parentElement);
           target.removeEventListener('click', handleDeleteClickEvent);
+          target.disabled = true;
         });
       }
-    }
+    };
 
-    function setCurrentImage(image) {
+    imageGroup.addEventListener('change', event => {
+      if (!currentImage) {
+        return true;
+      }
+
+      const $currentImage = currentImage;
+
+      const group = event.target;
+      const groupText = group[group.selectedIndex].textContent;
+
+      const params = new URLSearchParams();
+      params.set('ig', group.value);
+
+      fetch(`/image/${imageIdEl.textContent}`, {
+        method: 'PUT',
+        body: params,
+      }).then(() => {
+        $currentImage.setAttribute('data-group', params.get('ig'));
+        $currentImage.parentElement.querySelector('.image-group-text').textContent = groupText;
+      });
+    });
+
+    return image => {
       if (currentImage) {
         currentImage.parentElement.classList.remove('col-10');
         currentImage.parentElement.classList.remove('selected');
@@ -77,32 +103,9 @@
       currentImage.addEventListener('click', handleClickEvent);
 
       imageDeleteBtn.value = imageId;
+      imageDeleteBtn.disabled = false;
       imageDeleteBtn.addEventListener('click', handleDeleteClickEvent);
-    }
-
-    imageGroup.addEventListener('change', event => {
-      if (!currentImage) {
-        return true;
-      }
-
-      const $currentImage = currentImage;
-
-      const group = event.target;
-      const groupText = group[group.selectedIndex].textContent;
-
-      const params = new URLSearchParams();
-      params.set('ig', group.value);
-
-      fetch(`/image/${imageIdEl.textContent}`, {
-        method: 'PUT',
-        body: params,
-      }).then(() => {
-        $currentImage.setAttribute('data-group', params.get('ig'));
-        $currentImage.parentElement.querySelector('.image-group-text').textContent = groupText;
-      });
-    });
-
-    return setCurrentImage;
+    };
   })();
 
   document.querySelectorAll('.results .image img').forEach(image => {
@@ -118,8 +121,13 @@
     });
   });
 
-  const imageGroups =
-    (localStorage.getItem('selectedGroups') && localStorage.getItem('selectedGroups').split(',')) || [];
+  const imageGroups = (() => {
+    const g = localStorage.getItem('selectedGroups');
+    if (g) {
+      return g.split(',');
+    }
+    return [];
+  })();
 
   const searchForm = document.getElementById('search-form');
 
@@ -155,19 +163,23 @@
 
   handleScrollEvent(window.scrollY);
 
-  window.addEventListener('scroll', event => {
-    const lastScrollPosition = window.scrollY;
-    let ticking = false;
+  window.addEventListener(
+    'scroll',
+    event => {
+      const lastScrollPosition = window.scrollY;
+      let ticking = false;
 
-    if (!ticking) {
-      window.requestAnimationFrame(() => {
-        handleScrollEvent(lastScrollPosition);
-        ticking = false;
-      });
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          handleScrollEvent(lastScrollPosition);
+          ticking = false;
+        });
 
-      ticking = true;
-    }
-  });
+        ticking = true;
+      }
+    },
+    { passive: true },
+  );
   /*/
   console.log(sidebarPositionFromTop);
 
