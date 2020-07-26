@@ -25,7 +25,7 @@ def get_image(downloader: ImageDownloader, redownload=False, custom_name=None):
     if not redownload and db.Image.select().where(db.Image.filename == filename).exists():
         return '{}: Image ({}) already exists'.format(downloader, downloader.url)
     img_info['data'] = downloader.get_image(img_info['link'])
-    img_info['original_link'] = downloader.url
+    img_info['original_link'] = downloader.canonical_url()
     img_info['filename'] = filename
     img_info['_downloader'] = str(downloader)
     return img_info

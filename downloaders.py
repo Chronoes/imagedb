@@ -1,5 +1,7 @@
 """
 """
+import re
+
 from requests import Session
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse, parse_qs
@@ -7,6 +9,8 @@ from urllib.parse import urljoin, urlparse, parse_qs
 from config import load_config
 
 __author__ = 'Chronoes'
+
+class ImageDownloaderException(Exception): pass
 
 class ImageDownloader:
     def __init__(self, session, url):
@@ -16,6 +20,12 @@ class ImageDownloader:
     @staticmethod
     def supports(url):
         return False
+
+    def canonical_url(self):
+        """
+        Returns canonical URL for the downloader
+        """
+        raise NotImplementedError('Returns canonical URL')
 
     def get_image_info(self):
         """
@@ -32,6 +42,18 @@ class ImageDownloader:
     def __str__(self):
         return self.__class__.__name__
 
+
+def parse_gelbooru_id(url):
+    parsed_url = urlparse(url)
+    qry = parse_qs(parsed_url.query)
+    return qry['id'].pop()
+
+
+def gelbooru_canonical_url(url):
+    img_id = parse_gelbooru_id(url)
+    return 'https://gelbooru.com/index.php?page=post&s=view&id=' + img_id
+
+
 class GelbooruAPIParser(ImageDownloader):
     def __init__(self, session, url, api_key, user_id):
         super().__init__(session, url)
@@ -42,14 +64,12 @@ class GelbooruAPIParser(ImageDownloader):
     def supports(url):
         return url.find('gelbooru.com') != -1
 
-    def parse_id(self):
-        parsed_url = urlparse(self.url)
-        qry = parse_qs(parsed_url.query)
-        return qry['id']
+    def canonical_url(self):
+        return gelbooru_canonical_url(self.url)
 
     def get_image_info(self):
         params = {'page': 'dapi', 's': 'post', 'q': 'index', 'json': 1, 'api_key': self.api_key, 'user_id': self.user_id}
-        img_id = self.parse_id()
+        img_id = parse_gelbooru_id(self.url)
         params['id'] = img_id
         resp = self.session.get('https://gelbooru.com/index.php', params=params)
         if len(resp.content) == 0:
@@ -63,10 +83,6 @@ class GelbooruAPIParser(ImageDownloader):
 
 
 class HTMLParser(ImageDownloader):
-    def __init__(self, session, url):
-        self.session = session
-        self.url = url.strip()
-
     def get_image_info(self):
         resp = self.session.get(self.url)
         soup = BeautifulSoup(resp.text, 'html.parser')
@@ -91,6 +107,9 @@ class GelbooruParser(HTMLParser):
     def supports(url):
         return url.find('gelbooru.com') != -1
 
+    def canonical_url(self):
+        return gelbooru_canonical_url(self.url)
+
     def _get_image_parent(self, soup):
         return soup.find(id='image')
 
@@ -103,9 +122,17 @@ class GelbooruParser(HTMLParser):
 
 
 class KonachanParser(HTMLParser):
+    host = 'konachan.com'
+
     @staticmethod
     def supports(url):
-        return url.find('konachan.com') != -1
+        return url.find(KonachanParser.host) != -1
+
+    def canonical_url(self):
+        match = re.search(r'post\/show\/([0-9]+)', self.url)
+        if not match:
+            raise ImageDownloaderException('Cannot parse ID from ' + self.url)
+        return 'https://{}/post/show/{}'.format(self.host, match.group(1))
 
     def _get_image_parent(self, soup):
         return soup.find(id='image')
@@ -115,9 +142,11 @@ class KonachanParser(HTMLParser):
 
 
 class YandereParser(KonachanParser):
+    host = 'yande.re'
+
     @staticmethod
     def supports(url):
-        return url.find('yande.re') != -1
+        return url.find(YandereParser.host) != -1
 
 
 class DownloaderManager:
