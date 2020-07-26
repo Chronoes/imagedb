@@ -29,6 +29,8 @@ class ImageDownloader:
             headers={'Referer': self.url})
         return resp.content
 
+    def __str__(self):
+        return self.__class__.__name__
 
 class GelbooruAPIParser(ImageDownloader):
     def __init__(self, session, url, api_key, user_id):
@@ -122,13 +124,25 @@ class DownloaderManager:
     def __init__(self):
         self.config = load_config()
         self.session = Session()
+        self.config_verified = {'gelbooru': self._verify_gelbooru_api_config()}
 
-    def determine_downloader(self, url):
-        if GelbooruAPIParser.supports(url):
-            credentials = self.config['credentials']['gelbooru']
+    def _verify_gelbooru_api_config(self) -> bool:
+        if 'credentials' not in self.config:
+            return False
+        cred = self.config['credentials']
+        if 'gelbooru' not in cred:
+            return False
+        g = cred['gelbooru']
+        if g.get('api_key', None) and g.get('user_id', None):
+            return g
+        return False
+
+    def determine_downloader(self, url: str) -> ImageDownloader:
+        if GelbooruAPIParser.supports(url) and self.config_verified['gelbooru']:
+            credentials = self.config_verified['gelbooru']
             return GelbooruAPIParser(self.session, url, credentials['api_key'], credentials['user_id'])
-        # elif GelbooruParser.supports(url):
-        #     return GelbooruParser(self.session, url)
+        elif GelbooruParser.supports(url):
+            return GelbooruParser(self.session, url)
         elif KonachanParser.supports(url):
             return KonachanParser(self.session, url)
         elif YandereParser.supports(url):

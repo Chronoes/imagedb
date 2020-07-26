@@ -17,16 +17,17 @@ config = load_config()
 def get_image(downloader: ImageDownloader, redownload=False, custom_name=None):
     img_info = downloader.get_image_info()
     if not img_info:
-        return 'Could not parse {}'.format(downloader.url)
+        return '{}: Could not parse {}'.format(downloader, downloader.url)
     if custom_name:
         filename = custom_name + util.parse_extension(img_info['link'])
     else:
         filename = util.parse_filename(img_info['link'])
     if not redownload and db.Image.select().where(db.Image.filename == filename).exists():
-        return 'Image ({}) already exists'.format(downloader.url)
+        return '{}: Image ({}) already exists'.format(downloader, downloader.url)
     img_info['data'] = downloader.get_image(img_info['link'])
     img_info['original_link'] = downloader.url
     img_info['filename'] = filename
+    img_info['_downloader'] = str(downloader)
     return img_info
 
 
@@ -98,7 +99,7 @@ def save(img_info: dict, group: db.ImageGroup, retries=3):
     if not img_info:
         return
     elif retries <= 0:
-        print('No more retries for {}.'.format(img_info['original_link']))
+        print('{}: No more retries for {}.'.format(img_info['_downloader'], img_info['original_link']))
         return
 
     try:
@@ -107,7 +108,7 @@ def save(img_info: dict, group: db.ImageGroup, retries=3):
             filename=img_info['filename'],
             original_link=img_info['original_link'])
     except (peewee.IntegrityError, peewee.sqlite3.IntegrityError):
-        print('This {} is duplicated'.format(img_info['filename']))
+        print('{}: This {} is duplicated'.format(img_info['_downloader'], img_info['filename']))
         return
     except peewee.OperationalError:
         print('Disk error, retrying...')
@@ -133,7 +134,7 @@ def save(img_info: dict, group: db.ImageGroup, retries=3):
 
     save_file(img_info, group)
 
-    print('Image {} saved.'.format(img_info['original_link']))
+    print('{}: Image {} saved.'.format(img_info['_downloader'], img_info['original_link']))
 
 
 def fetch_image_urls(group: db.ImageGroup, all_images: bool):

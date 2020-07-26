@@ -154,9 +154,10 @@
 
   //*/
   function handleScrollEvent(lastScrollPosition) {
-    if (lastScrollPosition >= sidebarPositionFromTop) {
+    const diff = lastScrollPosition - sidebarPositionFromTop;
+    if (diff > 15) {
       imageSidebar.classList.add('image-sidebar__fixed');
-    } else {
+    } else if (diff < -15) {
       imageSidebar.classList.remove('image-sidebar__fixed');
     }
   }
@@ -166,12 +167,11 @@
   window.addEventListener(
     'scroll',
     event => {
-      const lastScrollPosition = window.scrollY;
       let ticking = false;
 
       if (!ticking) {
         window.requestAnimationFrame(() => {
-          handleScrollEvent(lastScrollPosition);
+          handleScrollEvent(window.scrollY);
           ticking = false;
         });
 
@@ -181,32 +181,21 @@
     { passive: true },
   );
   /*/
-  console.log(sidebarPositionFromTop);
 
-  const releaseIntersection = new IntersectionObserver((entries, obs) => {
-    console.log('release', entries);
-    obs.unobserve(entries[0].target);
-  }, {
+  const intersection = new IntersectionObserver(
+    entries => {
+      if (entries[0].isIntersecting) {
+        entries[0].target.classList.add('image-sidebar__fixed');
+      } else {
+        entries[0].target.classList.remove('image-sidebar__fixed');
+      }
+    },
+    {
       threshold: 0,
-      root: imageSidebar.parentElement,
-      rootMargin: `0px 0px ${-imageSidebar.parentElement.clientHeight + 1}px 0px`
-    });
-
-  const intersection = new IntersectionObserver(entries => {
-    console.log('add', entries);
-
-    if (entries[0].isIntersecting) {
-      entries[0].target.classList.add('image-sidebar__fixed');
-
-      releaseIntersection.observe(entries[0].target);
-    } else {
-      // entries[0].target.classList.remove('image-sidebar__fixed');
-    }
-  }, {
-      threshold: 0,
-      rootMargin: `0px 0px ${-window.innerHeight + 1}px 0px`
-    });
+      rootMargin: `0px 0px ${-window.innerHeight + 1}px 0px`,
+    },
+  );
 
   intersection.observe(imageSidebar);
-  /*/
+  //*/
 })();

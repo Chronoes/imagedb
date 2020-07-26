@@ -56,12 +56,16 @@ hr {
   cursor: pointer;
 }
 .results .image.selected img {
-  height: 95%;
+  max-height: 95%;
+  max-width: 100%;
+  height: auto;
 }
 
 .image-sidebar {
   height: 100%;
   z-index: 10;
+  position: sticky;
+  top: 0;
 }
 
 .image-sidebar.image-sidebar__fixed {
