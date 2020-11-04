@@ -31,6 +31,9 @@ def query_by_id(ids: list):
     query = Image.select().where(Image.id << ids).join(ImageGroup)
     return list(query)
 
+def find_by_filename(filename: str):
+    return Image.get(Image.filename == filename)
+
 def find_group(group: str):
     return ImageGroup.get(ImageGroup.name == group)
 
