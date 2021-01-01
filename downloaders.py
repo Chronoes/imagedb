@@ -63,7 +63,7 @@ class GelbooruAPIParser(ImageDownloader):
 
     @staticmethod
     def supports(url):
-        return url.find('gelbooru.com') != -1
+        return 'gelbooru.com' in url
 
     def canonical_url(self):
         return gelbooru_canonical_url(self.url)
@@ -111,7 +111,7 @@ class HTMLParser(ImageDownloader):
 class GelbooruParser(HTMLParser):
     @staticmethod
     def supports(url):
-        return url.find('gelbooru.com') != -1
+        return 'gelbooru.com' in url
 
     def canonical_url(self):
         return gelbooru_canonical_url(self.url)
@@ -126,13 +126,23 @@ class GelbooruParser(HTMLParser):
                 return element
         return ''
 
+    def upvote_image(self, img_id):
+        params={'page': 'post', 's': 'vote', 'id': img_id, 'type': 'up'}
+        self.session.get('https://gelbooru.com/index.php', params=params)
+
+    def get_image_info(self):
+        result = super().get_image_info()
+        if result:
+            img_id = parse_gelbooru_id(self.url)
+            self.upvote_image(img_id)
+        return result
 
 class KonachanParser(HTMLParser):
     host = 'konachan.com'
 
     @staticmethod
     def supports(url):
-        return url.find(KonachanParser.host) != -1
+        return KonachanParser.host in url
 
     def canonical_url(self):
         match = re.search(r'post\/show\/([0-9]+)', self.url)
@@ -152,7 +162,7 @@ class YandereParser(KonachanParser):
 
     @staticmethod
     def supports(url):
-        return url.find(YandereParser.host) != -1
+        return YandereParser.host in url
 
 
 class DownloaderManager:
