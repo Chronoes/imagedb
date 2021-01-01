@@ -2,6 +2,8 @@ import json
 import os
 import os.path
 
+from exceptions import ConfigException
+
 def _get_path(raw_path):
     if os.path.isabs(raw_path):
         return raw_path
@@ -13,6 +15,9 @@ def load_config(path=None):
 
     with open(path) as f:
         config = json.load(f)
+
+    if config['database']['type'] != 'sqlite':
+        raise ConfigException('Only sqlite is supported')
 
     config['database']['path'] = _get_path(config['database']['path'])
     for key in config['groups']:

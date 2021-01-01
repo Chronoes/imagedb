@@ -32,6 +32,15 @@ class ImageTag(BaseModel):
     class Meta:
         primary_key = pw.CompositeKey('image', 'tag')
 
-db.connect()
-models = [ImageGroup, Image, Tag, ImageTag]
-db.create_tables(models, safe=True)
+connected = False
+
+def connect_db():
+    global connected
+    if connected:
+        return db
+
+    db.connect()
+    models = [ImageGroup, Image, Tag, ImageTag]
+    db.create_tables(models, safe=True)
+    connected = True
+    return db

@@ -176,5 +176,5 @@ class DownloaderManager:
             return KonachanParser(self.session, url)
         elif YandereParser.supports(url):
             return YandereParser(self.session, url)
-        else:
-            raise NotImplementedError('Parser for (' + url + ') does not exist yet')
+
+        raise NotImplementedError('Parser for (' + url + ') does not exist yet')

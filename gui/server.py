@@ -12,6 +12,7 @@ from imagedb.config import load_config
 
 app = Flask(__name__)
 config = load_config()
+db.connect_db()
 
 @app.context_processor
 def override_url_for():

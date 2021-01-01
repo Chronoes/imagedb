@@ -4,16 +4,15 @@ import pathlib
 import sys
 import argparse
 
+import database.db_queries as queries
+
 from pathlib import Path
 from main_functions import fetch_image_urls, get_image, get_image_bulk, process_tags, save, save_file
-import database.db_queries as queries
+from database.database import connect_db
 from downloaders import DownloaderManager
 
 __author__ = 'Chronoes'
 
-
-# TODO: GUI for querying tags and inserting new images
-# TODO: Integrate with widescreenimages.py and imagesaver (Go)
 
 
 def init_parser():
@@ -42,6 +41,7 @@ def init_parser():
 def main():
     parser = init_parser()
     args = parser.parse_args()
+    connect_db()
 
     img_group = queries.find_group(args.group)
 
