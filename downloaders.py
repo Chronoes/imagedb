@@ -55,6 +55,7 @@ def gelbooru_canonical_url(url):
 
 
 class GelbooruAPIParser(ImageDownloader):
+    base_url = 'https://gelbooru.com/index.php'
     def __init__(self, session, url, api_key, user_id):
         super().__init__(session, url)
         self.api_key = api_key
@@ -67,13 +68,18 @@ class GelbooruAPIParser(ImageDownloader):
     def canonical_url(self):
         return gelbooru_canonical_url(self.url)
 
+    def upvote_image(self, img_id):
+        params={'page': 'post', 's': 'vote', 'id': img_id, 'type': 'up'}
+        self.session.get(self.base_url, params=params)
+
     def get_image_info(self):
         params = {'page': 'dapi', 's': 'post', 'q': 'index', 'json': 1, 'api_key': self.api_key, 'user_id': self.user_id}
         img_id = parse_gelbooru_id(self.url)
         params['id'] = img_id
-        resp = self.session.get('https://gelbooru.com/index.php', params=params)
+        resp = self.session.get(self.base_url, params=params)
         if len(resp.content) == 0:
             return
+        self.upvote_image(img_id)
 
         resp_json = resp.json().pop()
         return {
