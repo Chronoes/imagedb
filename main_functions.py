@@ -1,3 +1,4 @@
+import concurrent.futures as confut
 import threading
 import queue
 import peewee
@@ -14,7 +15,7 @@ from config import load_config
 config = load_config()
 
 
-def get_image(downloader: ImageDownloader, redownload=False, custom_name=None, skip_data=False):
+def get_image(downloader: ImageDownloader, redownload=False, custom_name=None, skip_data=False, parent=None):
     img_info = downloader.get_image_info()
     if not img_info:
         return '{}: Could not parse {}'.format(downloader, downloader.url)
@@ -29,11 +30,8 @@ def get_image(downloader: ImageDownloader, redownload=False, custom_name=None, s
     img_info['original_link'] = downloader.canonical_url()
     img_info['filename'] = filename
     img_info['_downloader'] = str(downloader)
+    img_info['parent'] = parent
     return img_info
-
-
-def get_image_queue(queue: queue.Queue, *args, **kwargs):
-    queue.put(get_image(*args, **kwargs))
 
 
 def queue_consumer(queue: queue.Queue, url_count: int, results_callback):
@@ -58,29 +56,71 @@ def queue_consumer(queue: queue.Queue, url_count: int, results_callback):
 
 
 def get_image_bulk(urls: list, results_callback, **kwargs):
-    url_count = len(urls)
+    url_count = sum(1 for url in urls if url.startswith('http'))
 
-    url_queue = queue.Queue(3)
-    consumer = threading.Thread(target=queue_consumer, args=(url_queue, url_count, results_callback))
+    image_queue = queue.Queue(0)
+    consumer = threading.Thread(target=queue_consumer, args=(image_queue, url_count, results_callback))
     consumer.start()
 
-    threads = []
     manager = DownloaderManager()
-    for url in set(urls):
+
+    def download_image(url, parent=None):
         downloader = manager.determine_downloader(url)
-        t = threading.Thread(target=get_image_queue, args=(url_queue, downloader), kwargs=kwargs)
-        t.start()
-        threads.append(t)
-        if len(threads) >= 10:
-            for t in threads:
-                t.join()
-            threads.clear()
+        return get_image(downloader, parent=parent, **kwargs)
 
-    for t in threads:
-        t.join()
 
-    url_queue.join()
-    url_queue.put(None)
+    with confut.ThreadPoolExecutor(max_workers=3) as executor:
+        # A lock to prevent multiple series downloaders running at once
+        # without it there's a potential for deadlock if series downloader threads equal max_workers
+        series_download_lock = threading.Lock()
+        def download_image_series(series_urls):
+            series_futures = []
+
+            series_futures.append(executor.submit(download_image, series_urls[0]))
+            for i in range(1, len(series_urls)):
+                series_futures.append(executor.submit(download_image, series_urls[i], parent=series_urls[i - 1]))
+
+            # Results have to be in the same order, so we have to process them sequentially
+            results = [f.result() for f in series_futures]
+            series_download_lock.release()
+            return results
+
+        downloaded_urls = set()
+        futures = []
+        series_of_urls = []
+        add_to_series = False
+        for url in urls:
+            url = url.strip()
+            if url in downloaded_urls:
+                continue
+            if url == 'series':
+                # start of a series of URLs, process separately
+                add_to_series = True
+            elif url == 'end series':
+                # ends the series of URLs and processes them
+                if len(series_of_urls) >= 1:
+                    series_download_lock.acquire()
+                    # Submit a copy of the list
+                    futures.append(executor.submit(download_image_series, series_of_urls[:]))
+                    series_of_urls.clear()
+                add_to_series = False
+            elif add_to_series:
+                series_of_urls.append(url)
+                downloaded_urls.add(url)
+            else:
+                futures.append(executor.submit(download_image, url))
+                downloaded_urls.add(url)
+
+        for future in confut.as_completed(futures):
+            image = future.result()
+            if type(image) == list:
+                for im in image:
+                    image_queue.put(im)
+            else:
+                image_queue.put(image)
+
+    image_queue.join()
+    image_queue.put(None)
     consumer.join()
 
 
@@ -123,10 +163,15 @@ def save(img_info: dict, group: db.ImageGroup, retries=3):
         return
 
     try:
+        parent = None
+        if img_info['parent']:
+            parent = db.Image.get(db.Image.original_link == img_info['parent'])
         img = db.Image.create(
             group=group,
             filename=img_info['filename'],
-            original_link=img_info['original_link'])
+            original_link=img_info['original_link'],
+            parent=parent
+        )
     except (peewee.IntegrityError, peewee.sqlite3.IntegrityError):
         print('{}: This {} is duplicated'.format(img_info['_downloader'], img_info['filename']))
         return

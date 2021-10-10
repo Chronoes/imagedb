@@ -21,6 +21,8 @@ class Image(BaseModel):
     group = pw.ForeignKeyField(ImageGroup)
     filename = pw.CharField(unique=True)
     original_link = pw.CharField()
+    # In reality, there should only be one child per parent as it is meant to be hierarchical
+    parent = pw.ForeignKeyField('self', null=True, backref='children')
 
 class Tag(BaseModel):
     tag = pw.CharField(unique=True)
