@@ -79,12 +79,16 @@ class GelbooruAPIParser(ImageDownloader):
         resp = self.session.get(self.base_url, params=params)
         if len(resp.content) == 0:
             return
+        resp_json = resp.json()
+        if not resp_json:
+            return
+        item = resp_json.pop()
+
         self.upvote_image(img_id)
 
-        resp_json = resp.json().pop()
         return {
-            'tags': resp_json['tags'].split(),
-            'link': resp_json['file_url']
+            'tags': item['tags'].split(),
+            'link': item['file_url']
         }
 
 

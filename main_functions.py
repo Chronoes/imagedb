@@ -69,7 +69,7 @@ def get_image_bulk(urls: list, results_callback, **kwargs):
         return get_image(downloader, parent=parent, **kwargs)
 
 
-    with confut.ThreadPoolExecutor(max_workers=3) as executor:
+    with confut.ThreadPoolExecutor(max_workers=4) as executor:
         # A lock to prevent multiple series downloaders running at once
         # without it there's a potential for deadlock if series downloader threads equal max_workers
         series_download_lock = threading.Lock()
