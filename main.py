@@ -1,9 +1,10 @@
 """
 """
-import pathlib
 import sys
 import argparse
+import peewee
 
+import database.database as db
 import database.db_queries as queries
 
 from pathlib import Path
@@ -31,10 +32,10 @@ def init_parser():
     parser.add_argument('-f', '--force',
         action='store_true',
         help='Apply some force.')
+    parser.add_argument('-g', '--group',
+        help='Group to be used for image')
     parser.add_argument('source', nargs='?', default='-',
         help='Source must be a valid URL or file of URLs')
-    parser.add_argument('group',
-        help='Group to be used for image')
     return parser
 
 
@@ -43,7 +44,10 @@ def main():
     args = parser.parse_args()
     connect_db()
 
-    img_group = queries.find_group(args.group)
+    try:
+        img_group = queries.find_group(args.group) if args.group else None
+    except peewee.DoesNotExist as e:
+        raise Exception(f'No such image group {args.group}') from e
 
     if args.redownload == 'images':
         urls = fetch_image_urls(img_group, args.force)
@@ -51,7 +55,7 @@ def main():
             if error:
                 print(f'Image {result} failed to redownload.')
             else:
-                save_file(result, img_group)
+                save_file(result)
                 print(f'Image {result["original_link"]} redownloaded.')
 
         get_image_bulk(urls, redownload_images_cb, redownload=True)
@@ -67,6 +71,8 @@ def main():
 
         get_image_bulk(urls, redownload_metadata_cb, redownload=True, skip_data=True)
     elif args.source.startswith('http'):
+        if img_group is None:
+            raise Exception('--group option must be specified for HTTP link as source')
         manager = DownloaderManager()
         downloader = manager.determine_downloader(args.source)
         if 'out' in args:
@@ -76,17 +82,32 @@ def main():
         if type(img_info) == str:
             print(img_info)
         else:
-            save(img_info, img_group)
+            img_info['group'] = img_group.name
+            save(img_info)
     else:
         file = sys.stdin if args.source == '-' else open(args.source, 'r')
         with file as f:
-            urls = f.readlines()
+            urls = []
+            for line in f:
+                line = line.strip()
+                if line == 'series' or line == 'end series':
+                    urls.append((None, line))
+                else:
+                    parts = line.split(' ', maxsplit=1)
+                    if len(parts) == 1:
+                        if img_group is None:
+                            raise Exception('Lines in file must have format if --group is not set: <group> <url>')
+                        else:
+                            urls.append((img_group.name, parts[0]))
+                    else:
+                        urls.append(tuple(parts))
+
 
         def save_image_cb(result, error=False):
             if error:
                 print(f'Image {result} failed to redownload.')
             else:
-                save(result, img_group)
+                save(result)
 
         get_image_bulk(urls, save_image_cb, redownload=bool(args.redownload))
 

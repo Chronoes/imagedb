@@ -78,10 +78,10 @@ class GelbooruAPIParser(ImageDownloader):
         params['id'] = img_id
         resp = self.session.get(self.base_url, params=params)
         if len(resp.content) == 0:
-            return
+            raise ImageDownloaderException('{}: Could not parse {}'.format(str(self), self.url))
         resp_json = resp.json()
         if not resp_json:
-            return
+            raise ImageDownloaderException('{}: Could not parse {}'.format(str(self), self.url))
         item = resp_json.pop()
 
         self.upvote_image(img_id)
@@ -103,7 +103,7 @@ class HTMLParser(ImageDownloader):
                 'tags': image_parent['alt'].split(),
                 'link': urljoin(self.url, link_parent['href']) if link_parent['href'].startswith('//') else link_parent['href']
             }
-        return
+        raise ImageDownloaderException('{}: Could not parse {}'.format(str(self), self.url))
 
     def _get_image_parent(self, soup):
         raise NotImplementedError('Gets location of image and tags in HTML')
@@ -168,6 +168,23 @@ class YandereParser(KonachanParser):
     def supports(url):
         return YandereParser.host in url
 
+class ImageInfo:
+    def __init__(self, link: str, original_link: str, tags: list[str], group=None, downloader: ImageDownloader=None, data=None, parent=None, filename=None) -> None:
+        self.link = link
+        self.original_link = original_link
+        self.tags = tags
+        self.group = group
+        self.data = data
+        self.downloader = downloader
+        self.parent = parent
+        self.filename = filename
+
+    @classmethod
+    def from_downloader(cls, downloader: ImageDownloader, group=None, skip_data=False, parent=None):
+        img_info = downloader.get_image_info()
+        return cls(img_info['link'], downloader.canonical_url(), img_info['tags'], group=group, downloader=downloader,
+            data=None if skip_data else downloader.get_image(img_info['link']),
+            parent=parent)
 
 class DownloaderManager:
     def __init__(self):

@@ -1,6 +1,7 @@
-__pycache__
+__pycache__/
+venv/
 imageDB.sqlite*
-.vscode
+.vscode/
 
 /config*.json
 !/config.dist.json
