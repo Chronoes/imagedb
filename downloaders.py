@@ -80,9 +80,9 @@ class GelbooruAPIParser(ImageDownloader):
         if len(resp.content) == 0:
             raise ImageDownloaderException('{}: Could not parse {}'.format(str(self), self.url))
         resp_json = resp.json()
-        if not resp_json:
+        if not resp_json or 'post' not in resp_json:
             raise ImageDownloaderException('{}: Could not parse {}'.format(str(self), self.url))
-        item = resp_json.pop()
+        item = resp_json['post'].pop()
 
         self.upvote_image(img_id)
 
