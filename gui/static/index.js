@@ -1,13 +1,29 @@
-(() => {
-  'use strict';
+{
+  ('use strict');
 
-  const lazyload = new LazyLoad({
-    threshold: 100,
-    callback_load(image) {
-      image.classList.remove('lazyloading');
-      const dimensions = image.parentElement.querySelector('.image-dimensions');
-      dimensions.textContent = `${image.naturalWidth}x${image.naturalHeight}`;
-    },
+  const setDimensions = (el, dimensions) => {
+    el.classList.remove('lazyloading');
+    const dimensionsEl = el.parentElement.parentElement.querySelector('.image-dimensions');
+    dimensionsEl.textContent = dimensions;
+  };
+
+  document.querySelectorAll('.lazy.lazyloading').forEach((el) => {
+    console.log(el);
+    if (el.localName === 'video') {
+      if (el.videoWidth) {
+        setDimensions(el, `${el.videoWidth}x${el.videoHeight}`);
+      }
+      el.addEventListener('loadeddata', (event) => {
+        setDimensions(el, `${el.videoWidth}x${el.videoHeight}`);
+      });
+    } else {
+      if (el.naturalWidth) {
+        setDimensions(el, `${el.naturalWidth}x${el.naturalHeight}`);
+      }
+      el.addEventListener('load', (event) => {
+        setDimensions(el, `${el.naturalWidth}x${el.naturalHeight}`);
+      });
+    }
   });
 
   function removeChildren(element) {
@@ -25,30 +41,27 @@
     const imageGroup = document.getElementById('image-group-list');
     const tagsList = document.getElementById('tags-list');
 
-    const handleClickEvent = event => {
-      event.target.parentElement.classList.remove('col-10');
-      event.target.parentElement.classList.remove('selected');
-      event.target.removeEventListener('click', handleClickEvent);
+    let currentImage;
+
+    const handleClickEvent = (event) => {
+      currentImage.classList.remove('col-10');
+      currentImage.classList.remove('selected');
+      currentImage.removeEventListener('click', handleClickEvent);
       imageDeleteBtn.disabled = true;
     };
 
-    let currentImage;
-
-    const handleDeleteClickEvent = event => {
-      const target = event.target;
-      const imageId = event.target.value;
-      if (confirm(`Are you sure you want to delete image ${imageId}`)) {
-        fetch(`/image/${imageId}`, { method: 'DELETE' }).then(res => {
-          // currentImage.parentElement.classList.remove('col-10');
-          // currentImage.parentElement.classList.remove('selected');
-          currentImage.parentElement.parentElement.removeChild(currentImage.parentElement);
-          target.removeEventListener('click', handleDeleteClickEvent);
-          target.disabled = true;
+    const handleDeleteClickEvent = (event) => {
+      const imageId = imageDeleteBtn.value;
+      if (confirm(`Are you sure you want to delete ${imageId}`)) {
+        fetch(`/image/${imageId}`, { method: 'DELETE' }).then((res) => {
+          currentImage.parentElement.removeChild(currentImage);
+          imageDeleteBtn.removeEventListener('click', handleDeleteClickEvent);
+          imageDeleteBtn.disabled = true;
         });
       }
     };
 
-    imageGroup.addEventListener('change', event => {
+    imageGroup.addEventListener('change', (event) => {
       if (!currentImage) {
         return true;
       }
@@ -65,35 +78,38 @@
         method: 'PUT',
         body: params,
       }).then(() => {
-        $currentImage.setAttribute('data-group', params.get('ig'));
+        $currentImage.dataset.group = params.get('ig');
         $currentImage.parentElement.querySelector('.image-group-text').textContent = groupText;
       });
     });
 
-    return image => {
+    return (imageContainer) => {
       if (currentImage) {
-        currentImage.parentElement.classList.remove('col-10');
-        currentImage.parentElement.classList.remove('selected');
+        currentImage.classList.remove('col-10');
+        currentImage.classList.remove('selected');
       }
-      currentImage = image;
-      currentImage.parentElement.classList.add('col-10');
-      currentImage.parentElement.classList.add('selected');
+      currentImage = imageContainer;
+      currentImage.classList.add('col-10');
+      currentImage.classList.add('selected');
+      console.log(currentImage);
 
-      const imageId = parseInt(image.getAttribute('data-id'), 10);
+      const mainImg = currentImage.querySelector('.image-main');
+      const imageId = mainImg.dataset.id;
       imageIdEl.textContent = imageId;
 
-      imageUrl.href = image.getAttribute('data-original-link');
+      imageUrl.href = mainImg.dataset['original-link'];
 
-      imageLocal.setAttribute('href', image.src);
-      const pathComponents = image.src.split('/');
+      const actualSource = mainImg.querySelector('img') ?? mainImg.querySelector('source');
+      imageLocal.href = actualSource.src;
+      const pathComponents = actualSource.src.split('/');
       imageLocal.textContent = pathComponents[pathComponents.length - 1];
 
-      imageGroup.value = image.getAttribute('data-group');
+      imageGroup.value = mainImg.dataset.group;
 
       removeChildren(tagsList);
 
-      const tags = image.getAttribute('alt').split(' ');
-      tags.forEach(tag => {
+      const tags = mainImg.title.split(' ');
+      tags.forEach((tag) => {
         const el = document.createElement('li');
         el.textContent = tag;
 
@@ -108,15 +124,14 @@
     };
   })();
 
-  document.querySelectorAll('.results .image img').forEach(image => {
-    image.addEventListener('click', event => {
-      const image = event.target;
+  document.querySelectorAll('.results .image').forEach((image) => {
+    image.addEventListener('click', (event) => {
       setCurrentImage(image);
     });
   });
 
-  document.querySelectorAll('.btn > [type="checkbox"]').forEach(element => {
-    element.addEventListener('change', event => {
+  document.querySelectorAll('.btn > [type="checkbox"]').forEach((element) => {
+    element.addEventListener('change', (event) => {
       event.target.parentElement.classList.toggle('active');
     });
   });
@@ -131,16 +146,16 @@
 
   const searchForm = document.getElementById('search-form');
 
-  searchForm.querySelectorAll('.image-group').forEach(group => {
+  searchForm.querySelectorAll('.image-group').forEach((group) => {
     group.checked = imageGroups.includes(group.value);
     if (group.checked) {
       group.parentElement.classList.add('active');
     }
   });
 
-  searchForm.addEventListener('submit', event => {
+  searchForm.addEventListener('submit', (event) => {
     const selected = [];
-    event.target.querySelectorAll('.image-group').forEach(group => {
+    event.target.querySelectorAll('.image-group').forEach((group) => {
       if (group.checked) {
         selected.push(group.value);
       }
@@ -166,7 +181,7 @@
 
   window.addEventListener(
     'scroll',
-    event => {
+    (event) => {
       let ticking = false;
 
       if (!ticking) {
@@ -198,4 +213,4 @@
 
   intersection.observe(imageSidebar);
   //*/
-})();
+}

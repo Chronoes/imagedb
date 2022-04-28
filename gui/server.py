@@ -1,7 +1,7 @@
+import mimetypes
 import os
 import os.path
 import shutil
-import json
 import peewee
 
 import imagedb.database.database as db
@@ -50,7 +50,8 @@ def index():
         if len(keywords) == 0:
             query = query.limit(100)
         for image in query:
-            results.append((image, ' '.join(get_image_tags(image))))
+            (mimetype, _) = mimetypes.guess_type(image.filename)
+            results.append((image, mimetype, ' '.join(get_image_tags(image))))
 
         return render_template('index.html', results=results, **defaults)
 
