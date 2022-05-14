@@ -4,10 +4,8 @@ import sys
 import argparse
 import peewee
 
-import database.database as db
 import database.db_queries as queries
 
-from pathlib import Path
 from main_functions import fetch_image_urls, get_image, get_image_bulk, process_tags, save, save_file
 from database.database import connect_db
 from downloaders import DownloaderManager
@@ -53,7 +51,7 @@ def main():
         urls = fetch_image_urls(img_group, args.force)
         def redownload_images_cb(result, error=False):
             if error:
-                print(f'Image {result} failed to redownload.')
+                print(result)
             else:
                 save_file(result)
                 print(f'Image {result["original_link"]} redownloaded.')
@@ -63,7 +61,7 @@ def main():
         urls = fetch_image_urls(img_group, True)
         def redownload_metadata_cb(result, error=False):
             if error:
-                print(f'Image {result} failed to redownload.')
+                print(result)
             else:
                 img = queries.find_by_filename(result['filename'])
                 process_tags(img, result['tags'])
@@ -105,7 +103,7 @@ def main():
 
         def save_image_cb(result, error=False):
             if error:
-                print(f'Image {result} failed to redownload.')
+                print(result)
             else:
                 save(result)
 

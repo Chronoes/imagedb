@@ -2,7 +2,7 @@ import concurrent.futures as confut
 import threading
 import queue
 import peewee
-import time
+import progressbar
 
 from pathlib import Path
 
@@ -36,21 +36,21 @@ def queue_consumer(queue: queue.Queue, url_count: int, results_callback):
     i = 0
     result_count = 0
 
-    while True:
-        util.progress_bar(i, url_count, suffix=f'-- {result_count}/{url_count} images downloaded.')
-        finished = queue.get()
-        if type(finished) == ImageInfo:
-            results_callback(finished)
-            result_count += 1
-        elif type(finished) == str:
-            results_callback(finished, error=True)
-        else:
-            queue.task_done()
-            break
+    with progressbar.ProgressBar(max_value=url_count, redirect_stdout=True) as bar:
+        while True:
+            finished = queue.get()
+            if type(finished) == ImageInfo:
+                results_callback(finished)
+                result_count += 1
+            elif type(finished) == str:
+                results_callback(finished, error=True)
+            else:
+                queue.task_done()
+                break
 
-        queue.task_done()
-        i += 1
-        time.sleep(0.3)
+            queue.task_done()
+            bar.update(i)
+            i += 1
 
 
 def get_image_bulk(urls: list, results_callback, **kwargs):
@@ -68,21 +68,12 @@ def get_image_bulk(urls: list, results_callback, **kwargs):
 
 
     with confut.ThreadPoolExecutor(max_workers=3) as executor:
-        # A lock to prevent multiple series downloaders running at once
-        # without it there's a potential for deadlock if series downloader threads equal max_workers
-        series_download_lock = threading.Lock()
         def download_image_series(series_urls):
             # Results have to be in the same order, so we have to process them sequentially
             futures = []
-            with confut.ThreadPoolExecutor(max_workers=2) as sub_executor:
-                g, url = series_urls[0]
-                futures.append(sub_executor.submit(download_image, g, url))
-                for i in range(1, len(series_urls)):
-                    g, url = series_urls[i]
-                    futures.append(sub_executor.submit(download_image, g, url, parent=series_urls[i - 1]))
-
-            confut.wait(futures)
-            series_download_lock.release()
+            for i, (g, url) in enumerate(series_urls):
+                parent = series_urls[i - 1] if i > 0 else None
+                futures.append(executor.submit(download_image, g, url, parent=parent))
             return futures
 
         downloaded_urls = set()
@@ -98,15 +89,14 @@ def get_image_bulk(urls: list, results_callback, **kwargs):
                 add_to_series = True
             elif url == 'end series':
                 # ends the series of URLs and processes them
-                if len(series_of_urls) >= 1:
-                    series_download_lock.acquire()
+                if series_of_urls:
                     # Submit a copy of the list
                     futures.append(executor.submit(download_image_series, series_of_urls[:]))
                     series_of_urls.clear()
                 add_to_series = False
             elif add_to_series:
                 series_of_urls.append((group, url))
-                downloaded_urls.add((group, url))
+                downloaded_urls.add(url)
             else:
                 futures.append(executor.submit(download_image, group, url))
                 downloaded_urls.add(url)
