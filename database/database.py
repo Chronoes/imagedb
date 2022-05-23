@@ -1,6 +1,5 @@
 """
 """
-import os.path
 import peewee as pw
 
 from imagedb.config import load_config
@@ -21,7 +20,7 @@ class Image(BaseModel):
     group = pw.ForeignKeyField(ImageGroup)
     filename = pw.CharField(unique=True)
     original_link = pw.CharField()
-    # In reality, there should only be one child per parent as it is meant to be hierarchical
+    # In reality, there should only be one child per parent as it is meant to be a linked list
     parent = pw.ForeignKeyField('self', null=True, backref='children')
 
 class Tag(BaseModel):

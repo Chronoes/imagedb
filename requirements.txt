@@ -10,7 +10,9 @@ itsdangerous==2.0.1
 Jinja2==3.0.3
 MarkupSafe==2.0.1
 peewee==3.14.8
+progressbar2==4.0.0
 pycodestyle==2.8.0
+python-utils==3.2.3
 requests==2.26.0
 soupsieve==2.3.1
 toml==0.10.2
