@@ -2,7 +2,7 @@ import json
 import os
 import os.path
 
-from exceptions import ConfigException
+from imagedb.exceptions import ConfigException
 
 _config = None
 
