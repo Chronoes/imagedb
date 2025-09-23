@@ -14,59 +14,62 @@ app = Flask(__name__)
 config = load_config()
 db.connect_db()
 
+
 @app.context_processor
 def override_url_for():
     return dict(url_for=dated_url_for)
 
+
 def dated_url_for(endpoint, **values):
-    if endpoint == 'static':
-        filename = values.get('filename', None)
+    if endpoint == "static":
+        filename = values.get("filename", None)
         if filename:
-            file_path = os.path.join(app.root_path,
-                                     endpoint, filename)
-            values['q'] = int(os.stat(file_path).st_mtime)
+            file_path = os.path.join(app.root_path, endpoint, filename)
+            values["q"] = int(os.stat(file_path).st_mtime)
     return url_for(endpoint, **values)
 
 
-@app.route('/')
+@app.route("/")
 def index():
-    defaults = {
-        'groups': list(get_groups()),
-        'qt': 'keyword'
-    }
-    keywords = request.args.get('keywords')
+    defaults = {"groups": list(get_groups()), "qt": "keyword"}
+    keywords = request.args.get("keywords")
     if keywords:
-        defaults['keywords'] = keywords
-    randomize = request.args.get('randomize')
+        defaults["keywords"] = keywords
+    randomize = request.args.get("randomize")
     if randomize:
-        defaults['randomize'] = randomize
-    if keywords or randomize == '1':
-        defaults['qt'] = request.args.get('qt', defaults['qt'])
+        defaults["randomize"] = randomize
+    if keywords or randomize == "1":
+        defaults["qt"] = request.args.get("qt", defaults["qt"])
         results = []
-        query = query_results(keywords.split() if len(keywords) > 0 else [], groups=request.args.getlist('ig[]'), query_type=defaults['qt'])
-        if randomize == '1':
+        query = query_results(
+            keywords.split() if len(keywords) > 0 else [],
+            groups=request.args.getlist("ig[]"),
+            query_type=defaults["qt"],
+        )
+        if randomize == "1":
             query = query.order_by(peewee.fn.Random())
 
         if len(keywords) == 0:
             query = query.limit(100)
         for image in query:
             (mimetype, _) = mimetypes.guess_type(image.filename)
-            results.append((image, mimetype, ' '.join(get_image_tags(image))))
+            results.append((image, mimetype, " ".join(get_image_tags(image))))
 
-        return render_template('index.html', results=results, **defaults)
+        return render_template("index.html", results=results, **defaults)
 
-    return render_template('index.html', **defaults)
+    return render_template("index.html", **defaults)
 
-@app.route('/image/<int:image_id>', methods=['PUT', 'DELETE'])
+
+@app.route("/image/<int:image_id>", methods=["PUT", "DELETE"])
 def image(image_id):
-    if request.method == 'PUT':
+    if request.method == "PUT":
         image = query_by_id([image_id]).pop()
 
-        if request.form.get('ig'):
-            new_group = db.ImageGroup.get(db.ImageGroup.id == request.form.get('ig'))
+        if request.form.get("ig"):
+            new_group = db.ImageGroup.get(db.ImageGroup.id == request.form.get("ig"))
             if new_group:
-                old_directory = config['groups'][image.group.name]
-                new_directory = config['groups'][new_group.name]
+                old_directory = config["groups"][image.group.name]
+                new_directory = config["groups"][new_group.name]
 
                 image_path = os.path.join(old_directory, image.filename)
                 if os.path.exists(os.path.join(new_directory, image.filename)):
@@ -77,23 +80,24 @@ def image(image_id):
                 image.group = new_group
 
         image.save()
-    if request.method == 'DELETE':
+    elif request.method == "DELETE":
         image = query_by_id([image_id]).pop()
 
         image.delete_instance()
 
-        directory = config['groups'][image.group.name]
+        directory = config["groups"][image.group.name]
         try:
             os.remove(os.path.join(directory, image.filename))
         except FileNotFoundError:
             pass
 
-    return 'success'
+    return "success"
 
-@app.route('/<group>/<path:filename>')
+
+@app.route("/<group>/<path:filename>")
 def image_file(group, filename):
     db_group = find_group(group)
     if db_group:
-        directory = config['groups'][db_group.name]
+        directory = config["groups"][db_group.name]
         return send_from_directory(directory, filename)
     return None
